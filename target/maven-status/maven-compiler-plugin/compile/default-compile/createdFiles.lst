@@ -1,0 +1,4 @@
+com\smartfridge\model\Recipe.class
+com\smartfridge\SmartFridgeApplication.class
+com\smartfridge\model\Product.class
+com\smartfridge\model\User.class

@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
+import 'package:http/http.dart' as http;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -24,28 +27,89 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // Método que simula el inicio de sesión
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final username = prefs.getString('username');
+    if (username != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    }
+  }
+
   Future<void> _login() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
         _isLoading = true;
       });
 
-      // Simulando un retraso de 2 segundos (como si fuera una solicitud de inicio de sesión)
-      await Future.delayed(const Duration(seconds: 2));
+      final username = _emailController.text;
+      final password = _passwordController.text;
 
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (mounted) {
-        // Redirigir al HomeScreen después del login simulado
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+      try {
+        final response = await http.post(
+          Uri.parse('http://10.0.2.2:8080/users/login'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'username': username,
+            'password': password,
+          }),
         );
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('username', data['username']);
+          await prefs.setString('email', data['email']);
+          
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        } else if (response.statusCode == 401) {
+          _showErrorDialog('Usuario o contraseña incorrectos');
+        } else {
+          _showErrorDialog('Ha ocurrido un error inesperado');
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorDialog('Error de conexión. Intenta nuevamente.');
       }
     }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Error'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -135,7 +199,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
-
                             Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -182,7 +245,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
-
                             SizedBox(
                               width: double.infinity,
                               height: 50,
@@ -207,7 +269,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
-
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [

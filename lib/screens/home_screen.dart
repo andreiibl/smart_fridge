@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_fridge/screens/login_screen.dart';
 import 'package:smart_fridge/screens/recipe_screen.dart';
 import 'package:smart_fridge/screens/settings_screen.dart';
@@ -96,8 +97,13 @@ class HomeScreen extends StatelessWidget {
                     size: buttonSize,
                     icon: Icons.exit_to_app_outlined,
                     label: 'Cerrar sesión',
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+                    onPressed: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.clear();
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      );
                     },
                   ),
                 ],
