@@ -4,398 +4,184 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
 import 'package:http/http.dart' as http;
-// Pantalla de login de usuario
-class LoginScreen extends StatefulWidget 
-{
+import 'package:smart_fridge/config/config.dart';
+
+// Pantalla de inicio de sesión
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> 
-{
+class _LoginScreenState extends State<LoginScreen> {
   // Clave para validar el formulario
   final _formKey = GlobalKey<FormState>();
 
-  // Controladores de los campos del formulario
+  // Controladores para los campos de texto
   final _usernameOrEmailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  // Estado de visibilidad de contraseñas y otros controle
-  bool _passwordVisible = false;
-  bool _isLoading = false;
-  String? _errorMessage;
+  // Estado de la pantalla
+  bool _passwordVisible = false; // Visibilidad de la contraseña
+  bool _isLoading = false; // Indicador de carga
+  String? _errorMessage; // Mensaje de error
 
-  // Liberar los controladores al destruir el widget
   @override
-  void dispose() 
-  {
+  void initState() {
+    super.initState();
+    _checkLoginStatus(); // Verificar si el usuario ya está logueado
+  }
+
+  @override
+  void dispose() {
+    // Liberar recursos al destruir el widget
     _usernameOrEmailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   @override
-  void initState() 
-  {
-    super.initState();
-    _checkLoginStatus(); // Verifica el estado de login al iniciar
-  }
-
-  // Revisa si el usuario ya está logueado en las preferencias locales
-  Future<void> _checkLoginStatus() async 
-  {
-    final prefs = await SharedPreferences.getInstance(); // Obtener instancia de SharedPreferences
-    final username = prefs.getString('username'); // Recuperar el nombre de usuario guardado
-    // Si el usuario está logueado, redirige a la pantalla principal
-    if (username != null) 
-    {
-      Navigator.pushReplacement
-      (
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    }
-  }
-
-  // Función que maneja el proceso de login
-  Future<void> _login() async 
-  {
-    // Validar el formulario
-    if (_formKey.currentState?.validate() ?? false) 
-    {
-      setState(() => _isLoading = true);
-
-      try 
-      {
-        final response = await http.post
-        (
-          // Enviar solicitud POST para loguear usuario
-          Uri.parse('http://10.0.2.2:8080/users/login'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode
-          (
-            {
-            'usernameOrEmail': _usernameOrEmailController.text,
-            'password': _passwordController.text,
-            }
-          ),
-        );
-
-        // Detener la carga independientemente de la respuesta del servidor
-        setState(() => _isLoading = false);
-
-        if (response.statusCode == 200) 
-        {
-          // Parsear la respuesta
-          final data = jsonDecode(response.body);
-          
-          // Guardar datos en SharedPreferences
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('username', data['username']);
-          await prefs.setString('email', data['email']);
-
-          // Redirigir a la pantalla principal
-          Navigator.pushReplacement
-          (
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
-        } else if (response.statusCode == 401) 
-        {
-          // Si el login es fallido, mostrar un mensaje de error
-          _setErrorMessage('Usuario o contraseña incorrectos');
-        } else 
-        {
-          // Si hay otro error, mostrar un mensaje genérico
-          _setErrorMessage('Ha ocurrido un error inesperado');
-        }
-      } catch (e) 
-      {
-        // Manejar cualquier error de conexión
-        setState(() {
-          _isLoading = false;
-        });
-        _setErrorMessage('Error de conexión. Intenta nuevamente.');
-      }
-    }
-  }
-
-  // Mostrar un cuadro de diálogo con un mensaje de error
-  void _setErrorMessage(String message) 
-  {
-      setState(() {
-        _errorMessage = message;
-      });
-  }
-
-  @override
-  Widget build(BuildContext context) 
-  {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return GestureDetector
-    (
+    return GestureDetector(
       // Oculta el teclado al tocar fuera del campo
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-      child: Scaffold
-      (
-        body: Stack
-        (
-          children: 
-          [
+      child: Scaffold(
+        body: Stack(
+          children: [
             // Fondo con gradiente
-            Container
-            (
+            Container(
               width: double.infinity,
               height: double.infinity,
-              decoration: const BoxDecoration
-              (
-                gradient: LinearGradient
-                (
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
                   colors: [Color(0xFF4B39EF), Color(0xFF39D2C0)],
                   stops: [0, 1],
                   begin: AlignmentDirectional(1, 1),
                   end: AlignmentDirectional(-1, -1),
                 ),
               ),
-              child: Padding
-              (
+              child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 100, 24, 24),
-                child: SingleChildScrollView
-                (
-                  child: Column
-                  (
-                    mainAxisSize: MainAxisSize.max,
+                child: SingleChildScrollView(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: 
-                    [
+                    children: [
                       // Título y descripción
-                      Column
-                      (
-                        mainAxisSize: MainAxisSize.max,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: 
-                        [
-                          Text
-                          (
-                            '¡Bienvenido de nuevo!',
-                            style: theme.textTheme.headlineSmall?.copyWith
-                            (
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text
-                          (
-                            'Inicia sesión en tu cuenta para continuar',
-                            style: theme.textTheme.bodyLarge?.copyWith
-                            (
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        '¡Bienvenido de nuevo!',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Inicia sesión en tu cuenta para continuar',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       const SizedBox(height: 32),
 
                       // Mostrar mensaje de error si existe
                       if (_errorMessage != null)
-                        Container
-                        (
+                        Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration
-                          (
+                          decoration: BoxDecoration(
                             color: Colors.red[100],
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text
-                          (
+                          child: Text(
                             _errorMessage!,
                             style: const TextStyle(color: Colors.red),
                           ),
                         ),
                       if (_errorMessage != null) const SizedBox(height: 16),
 
-
-                      // Formulario de registro
-                      Form
-                      (
+                      // Formulario de inicio de sesión
+                      Form(
                         key: _formKey,
-                        child: Column
-                        (
-                          mainAxisSize: MainAxisSize.max,
-                          children: 
-                          [
-                            // Campo usuario
-                            Container
-                            (
-                              decoration: BoxDecoration
-                              (
-                                color: Colors.white,
-                                boxShadow: const 
-                                [
-                                  BoxShadow
-                                  (
-                                    blurRadius: 5,
-                                    color: Color(0x1A000000),
-                                    offset: Offset(0, 2),
-                                  )
-                                ],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: TextFormField
-                              (
-                                controller: _usernameOrEmailController,
-                                textInputAction: TextInputAction.next,
-                                decoration: InputDecoration
-                                (
-                                  hintText: 'Correo electrónico o usuario',
-                                  hintStyle: theme.textTheme.bodyMedium?.copyWith
-                                  (
-                                    color: Colors.grey,
-                                  ),
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.all(16),
-                                  prefixIcon: const Icon
-                                  (
-                                    Icons.mail_outline,
-                                    color: Colors.grey,
-                                    size: 24,
-                                  ),
-                                ),
-                                style: theme.textTheme.bodyMedium,
-                                keyboardType: TextInputType.emailAddress,
-                              ),
+                        child: Column(
+                          children: [
+                            // Campo de usuario
+                            _buildTextField(
+                              controller: _usernameOrEmailController,
+                              hintText: 'Correo electrónico o usuario',
+                              icon: Icons.mail_outline,
+                              isPassword: false,
                             ),
                             const SizedBox(height: 16),
 
-                            // Campo contraseña
-                            Container
-                            (
-                              decoration: BoxDecoration
-                              (
-                                color: Colors.white,
-                                boxShadow: const 
-                                [
-                                  BoxShadow
-                                  (
-                                    blurRadius: 5,
-                                    color: Color(0x1A000000),
-                                    offset: Offset(0, 2),
-                                  )
-                                ],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: TextFormField
-                              (
-                                controller: _passwordController,
-                                obscureText: !_passwordVisible,
-                                decoration: InputDecoration
-                                (
-                                  hintText: 'Contraseña',
-                                  hintStyle: theme.textTheme.bodyMedium?.copyWith
-                                  (
-                                    color: Colors.grey,
-                                  ),
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.all(16),
-                                  prefixIcon: const Icon
-                                  (
-                                    Icons.lock_outline,
-                                    color: Colors.grey,
-                                    size: 24,
-                                  ),
-                                  suffixIcon: IconButton
-                                  (
-                                    icon: Icon
-                                    (
-                                      _passwordVisible
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                      color: Colors.grey,
-                                      size: 24,
-                                    ),
-                                    onPressed: () 
-                                    {
-                                      setState(() {
-                                        _passwordVisible = !_passwordVisible;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                style: theme.textTheme.bodyMedium,
-                              ),
+                            // Campo de contraseña
+                            _buildTextField(
+                              controller: _passwordController,
+                              hintText: 'Contraseña',
+                              icon: Icons.lock_outline,
+                              isPassword: true,
+                              togglePasswordVisibility: () {
+                                setState(() {
+                                  _passwordVisible = !_passwordVisible;
+                                });
+                              },
+                              passwordVisible: _passwordVisible,
                             ),
                             const SizedBox(height: 16),
 
-                            // Botón de login
-                            SizedBox
-                            (
+                            // Botón de inicio de sesión
+                            SizedBox(
                               width: double.infinity,
                               height: 50,
-                              child: ElevatedButton
-                              (
+                              child: ElevatedButton(
                                 onPressed: _isLoading ? null : _login,
-                                style: ElevatedButton.styleFrom
-                                (
+                                style: ElevatedButton.styleFrom(
                                   backgroundColor: theme.primaryColor,
-                                  shape: RoundedRectangleBorder
-                                  (
+                                  shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  elevation: 3,
                                 ),
-                                child: _isLoading
-                                    ? const CircularProgressIndicator(color: Colors.white)
-                                    : Text
-                                    (
-                                        'Iniciar sesión',
-                                        style: theme.textTheme.titleSmall?.copyWith
-                                        (
+                                child:
+                                    _isLoading
+                                        ? const CircularProgressIndicator(
                                           color: Colors.white,
-                                          fontWeight: FontWeight.bold,
+                                        )
+                                        : Text(
+                                          'Iniciar sesión',
+                                          style: theme.textTheme.titleSmall
+                                              ?.copyWith(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                         ),
-                                      ),
                               ),
                             ),
                             const SizedBox(height: 16),
 
                             // Enlace para registro
-                            Row
-                            (
+                            Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: 
-                              [
-                                Text
-                                (
+                              children: [
+                                Text(
                                   '¿No tienes una cuenta? ',
-                                  style: theme.textTheme.bodyMedium?.copyWith
-                                  (
+                                  style: theme.textTheme.bodyMedium?.copyWith(
                                     color: Colors.white,
                                   ),
                                 ),
-                                TextButton
-                                (
-                                  onPressed: () 
-                                  {
-                                    Navigator.push
-                                    (
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.push(
                                       context,
-                                      MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => const RegisterScreen(),
+                                      ),
                                     );
                                   },
-                                  style: TextButton.styleFrom
-                                  (
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: Text
-                                  (
+                                  child: Text(
                                     'Regístrate',
                                     style: theme.textTheme.bodyMedium?.copyWith(
                                       color: Colors.white,
@@ -415,6 +201,109 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Verifica si el usuario ya está logueado
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    if (userId != null) {
+      // Redirigir a la pantalla principal si está logueado
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    }
+  }
+
+  // Maneja el proceso de inicio de sesión
+  Future<void> _login() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() => _isLoading = true);
+
+      try {
+        final response = await http.post(
+          Uri.parse(AppConfig.loginEndpoint),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'usernameOrEmail': _usernameOrEmailController.text,
+            'password': _passwordController.text,
+          }),
+        );
+
+        setState(() => _isLoading = false);
+
+        if (response.statusCode == 200) {
+          // Guardar datos del usuario y redirigir
+          final data = jsonDecode(response.body);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('userId', data['id'].toString());
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        } else if (response.statusCode == 401) {
+          setState(() => _errorMessage = 'Usuario o contraseña incorrectos');
+        } else {
+          setState(() => _errorMessage = 'Ha ocurrido un error inesperado');
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Error de conexión. Intenta nuevamente.';
+        });
+      }
+    }
+  }
+
+  // Widget para construir campos de texto
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData icon,
+    required bool isPassword,
+    bool? passwordVisible,
+    VoidCallback? togglePasswordVisibility,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: const [
+          BoxShadow(
+            blurRadius: 5,
+            color: Color(0x1A000000),
+            offset: Offset(0, 2),
+          ),
+        ],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextFormField(
+        controller: controller,
+        obscureText: isPassword && !(passwordVisible ?? false),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(16),
+          prefixIcon: Icon(icon, color: Colors.grey, size: 24),
+          suffixIcon:
+              isPassword
+                  ? IconButton(
+                    icon: Icon(
+                      (passwordVisible ?? false)
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      color: Colors.grey,
+                      size: 24,
+                    ),
+                    onPressed: togglePasswordVisibility,
+                  )
+                  : null,
+        ),
+        style: theme.textTheme.bodyMedium,
       ),
     );
   }

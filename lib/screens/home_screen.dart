@@ -60,7 +60,7 @@ class HomeScreen extends StatelessWidget {
                     label: 'Visualizar\nproductos',
                     onPressed: () {
                       // Nav to products
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductListScreen()));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) =>  ProductListView()));
                     },
                   ),
 
