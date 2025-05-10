@@ -5,6 +5,21 @@ import 'package:smart_fridge/services/product_service.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 
+// Quitar tildes y acentos de un texto
+String removeDiacritics(String text) {
+  return text
+      .toLowerCase()
+      .replaceAllMapped(RegExp(r'[^\x00-\x7F]'), (match) => '')
+      .replaceAll(RegExp(r'[\u0300-\u036f]'), '');
+}
+
+// Convierte todo a minúsculas y la primera letra a mayúscula
+String capitalizeFirst(String text) {
+  if (text.isEmpty) return text;
+  final lower = text.toLowerCase();
+  return lower[0].toUpperCase() + lower.substring(1);
+}
+
 // Pantalla de lista de productos
 class ProductListView extends StatefulWidget {
   @override
@@ -96,6 +111,40 @@ class _ProductListViewState extends State<ProductListView> {
       'Otros': 'assets/images/others.png',
     };
     return categoryImageMap[category] ?? 'assets/images/default.png';
+  }
+
+  // Conversión para almacenar siempre en gr/ml
+  double _parseQuantity(String cantidad, String unidad) {
+    double value = double.tryParse(cantidad.replaceAll(',', '.')) ?? 0;
+    switch (unidad.toLowerCase()) {
+      case 'kg':
+        return value * 1000;
+      case 'litros':
+        return value * 1000;
+      default:
+        return value;
+    }
+  }
+
+  String _unitySaved(String unidad) {
+    switch (unidad.toLowerCase()) {
+      case 'kg':
+        return 'gr';
+      case 'litros':
+        return 'ml';
+      default:
+        return unidad;
+    }
+  }
+
+  // Mostrar en kg/l si >= 1000 gr/ml
+  String showQuantity(double cantidad, String unidad) {
+    if ((unidad == 'gr' || unidad == 'ml') && cantidad >= 1000) {
+      final double convertido = cantidad / 1000;
+      final String nuevaUnidad = (unidad == 'gr') ? 'Kg' : 'L';
+      return '${convertido.toStringAsFixed(2)} $nuevaUnidad';
+    }
+    return '${cantidad.toStringAsFixed(2)} $unidad';
   }
 
   // Método genérico para añadir o editar un producto
@@ -287,11 +336,43 @@ class _ProductListViewState extends State<ProductListView> {
 
                     try {
                       if (product == null) {
+                        // Normaliza el nombre a comparar
+                        final normalizedNewName = capitalizeFirst(
+                          removeDiacritics(nameController.text.trim()),
+                        );
+
+                        // Obtén los productos actuales del usuario
+                        final existingProducts = await ProductService()
+                            .getProductsByUserId(userId);
+
+                        final exists = existingProducts.any(
+                          (p) =>
+                              capitalizeFirst(
+                                removeDiacritics(p.name.trim()),
+                              ) ==
+                              normalizedNewName,
+                        );
+
+                        if (exists) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Ya existe un producto con ese nombre',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
                         // Crear un nuevo producto
                         final newProduct = Product(
-                          name: nameController.text,
-                          quantity: double.parse(quantityController.text),
-                          typeQuantity: selectedUnit,
+                          name: normalizedNewName,
+                          quantity: _parseQuantity(
+                            quantityController.text,
+                            selectedUnit,
+                          ),
+                          typeQuantity: _unitySaved(selectedUnit),
                           expDate: dateController.text,
                           imageUrl: imageUrl,
                           category: selectedCategory,
@@ -309,9 +390,14 @@ class _ProductListViewState extends State<ProductListView> {
                         // Actualizar producto existente
                         final updatedProduct = Product(
                           id: product.id,
-                          name: nameController.text.trim(),
-                          quantity: double.parse(quantityController.text),
-                          typeQuantity: selectedUnit,
+                          name: capitalizeFirst(
+                            removeDiacritics(nameController.text.trim()),
+                          ),
+                          quantity: _parseQuantity(
+                            quantityController.text,
+                            selectedUnit,
+                          ),
+                          typeQuantity: _unitySaved(selectedUnit),
                           expDate: dateController.text,
                           category: selectedCategory,
                           imageUrl: imageUrl,
@@ -623,7 +709,7 @@ class _ProductListViewState extends State<ProductListView> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${product.quantity} ${product.typeQuantity}',
+                    showQuantity(product.quantity, product.typeQuantity),
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 4),
@@ -698,20 +784,25 @@ class _ProductListViewState extends State<ProductListView> {
   void _applyFilters() async {
     final allProducts = await _fetchProducts();
     setState(() {
-      products = Future.value(allProducts.where((product) {
-        final matchesName = _nameFilterController.text.isEmpty ||
-            product.name.toLowerCase().contains(
-              _nameFilterController.text.toLowerCase(),
-            );
-        final matchesCategory = _selectedCategory.isEmpty ||
-            product.category == _selectedCategory;
-        final matchesExpDate = _expDateFilterController.text.isEmpty ||
-            DateTime.parse(product.expDate).isBefore(
-              DateFormat('yyyy-MM-dd').parse(_expDateFilterController.text),
-            );
+      products = Future.value(
+        allProducts.where((product) {
+          final matchesName =
+              _nameFilterController.text.isEmpty ||
+              product.name.toLowerCase().contains(
+                _nameFilterController.text.toLowerCase(),
+              );
+          final matchesCategory =
+              _selectedCategory.isEmpty ||
+              product.category == _selectedCategory;
+          final matchesExpDate =
+              _expDateFilterController.text.isEmpty ||
+              DateTime.parse(product.expDate).isBefore(
+                DateFormat('yyyy-MM-dd').parse(_expDateFilterController.text),
+              );
 
-        return matchesName && matchesCategory && matchesExpDate;
-      }).toList());
+          return matchesName && matchesCategory && matchesExpDate;
+        }).toList(),
+      );
     });
   }
 

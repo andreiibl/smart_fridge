@@ -9,7 +9,7 @@ public class Product {
     // Identificador único generado automáticamente
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private int id;
     // Atributos de la entidad
     private String name;
     private Double quantity;
@@ -23,7 +23,7 @@ public class Product {
     private User user;
 
     // Getters y Setters
-    public Long getId() {
+    public int getId() {
         return id;
     }
 
@@ -81,5 +81,18 @@ public class Product {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    @Override
+    public String toString() {
+        return "Product{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", category='" + category + '\'' +
+                ", quantity=" + quantity +
+                ", typeQuantity='" + typeQuantity + '\'' +
+                ", expDate='" + expDate + '\'' +
+                ", user=" + (user != null ? user.getId() : "null") +
+                '}';
     }
 }

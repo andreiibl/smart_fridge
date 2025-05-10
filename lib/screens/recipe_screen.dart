@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:smart_fridge/config/config.dart';
 import 'package:smart_fridge/screens/recipe_history_screen.dart';
-import 'package:smart_fridge/screens/recipe_steps_screen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:smart_fridge/screens/recipe_detail_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RecipeGeneratorScreen extends StatelessWidget {
   const RecipeGeneratorScreen({super.key});
@@ -68,14 +72,57 @@ class RecipeGeneratorScreen extends StatelessWidget {
                     context,
                     icon: Icons.restaurant_menu,
                     label: 'Generar Receta Nueva',
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const RecipeDetailScreen()),
-                      ).then((newRecipe) {
-                        if (newRecipe != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nueva receta creada')));
+                    onPressed: () async {
+                      try {
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder:
+                              (context) => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                        );
+                        final prefs = await SharedPreferences.getInstance();
+                        final userId = int.parse(
+                          prefs.getString('userId') ?? '0',
+                        );
+                        final recipe = await generateRecipe(userId);
+                        Navigator.of(context).pop();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => RecipeDetailScreen(recipe: recipe),
+                          ),
+                        );
+                      } catch (e) {
+                        Navigator.of(context).pop();
+
+                        String errorMsg = 'Error al generar la receta';
+                        if (e is http.Response) {
+                          try {
+                            final decoded = json.decode(
+                              utf8.decode(e.bodyBytes),
+                            );
+                            if (decoded is Map && decoded['message'] != null) {
+                              errorMsg = decoded['message'];
+                            }
+                          } catch (_) {}
+                        } else if (e is Exception &&
+                            e.toString().contains(
+                              'No se puede generar una receta',
+                            )) {
+                          errorMsg =
+                              'No se puede generar una receta con los ingredientes disponibles.';
                         }
-                      });
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(errorMsg),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     },
                   ),
                   const SizedBox(height: 30),
@@ -84,13 +131,21 @@ class RecipeGeneratorScreen extends StatelessWidget {
                     context,
                     icon: Icons.history,
                     label: 'Ver Recetas Anteriores',
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const RecipeHistoryScreen()),
+                    onPressed: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      final userId = int.parse(
+                        prefs.getString('userId') ?? '0',
+                      );
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => RecipeHistoryScreen(userId: userId),
+                        ),
                       );
                     },
                   ),
                   const SizedBox(height: 30),
-
                 ],
               ),
             ),
@@ -108,17 +163,14 @@ class RecipeGeneratorScreen extends StatelessWidget {
   }) {
     return SizedBox(
       width: double.infinity,
-      height: 100, 
+      height: 100,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(
-              color: Colors.grey.withOpacity(0.2),
-              width: 1,
-            ),
+            side: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
           ),
           elevation: 3,
           shadowColor: Colors.grey.withOpacity(0.5),
@@ -126,11 +178,7 @@ class RecipeGeneratorScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 30,
-              color: const Color(0xFF4B39EF),
-            ),
+            Icon(icon, size: 30, color: const Color(0xFF4B39EF)),
             const SizedBox(height: 10),
             Text(
               label,
@@ -144,5 +192,20 @@ class RecipeGeneratorScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+Future<Map<String, dynamic>> generateRecipe(int userId) async {
+  final url = Uri.parse('${AppConfig.generateRecipeEndpoint}/$userId');
+
+  final response = await http.post(
+    url,
+    headers: {'Content-Type': 'application/json; charset=UTF-8'},
+  );
+
+  if (response.statusCode == 200) {
+    return json.decode(utf8.decode(response.bodyBytes));
+  } else {
+    throw response;
   }
 }

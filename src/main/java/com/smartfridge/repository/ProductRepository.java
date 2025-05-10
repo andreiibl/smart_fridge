@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long> {
+public interface ProductRepository extends JpaRepository<Product, Integer> {
     
     // Buscar productos por nombre
     List<Product> findByName(String name);
@@ -19,8 +19,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByNameOrCategory(String name, String category);
     
     // Buscar productos por id de usuario
-    List<Product> findByUserId(Long userId);
+    List<Product> findByUserId(int userId);
 
     // Buscar productos con fecha de expiración anterior a una fecha dada
     List<Product> findByExpDateBefore(String expDate);
+
+    // Buscar productos por nombre sin importar mayúsculas o minúsculas
+    List<Product> findByNameIgnoreCase(String name);
 }

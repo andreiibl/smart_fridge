@@ -11,7 +11,7 @@ public class User {
     // Identificador único del usuario, generado automáticamente
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private int id;
 
     private String name;
     private String username;
@@ -27,7 +27,7 @@ public class User {
         this.password = password; 
     }
     // Getters y setters
-    public Long getId() { return id; }
+    public int getId() { return id; }
 
     public String getName() { return name; }
 

@@ -1,18 +1,67 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:smart_fridge/config/config.dart';
+import 'recipe_detail_screen.dart';
 
-class RecipeHistoryScreen extends StatelessWidget {
-  const RecipeHistoryScreen({super.key});
+class RecipeHistoryScreen extends StatefulWidget {
+  final int userId;
+  
+  const RecipeHistoryScreen({super.key, required this.userId});
+
+  @override
+  State<RecipeHistoryScreen> createState() => _RecipeHistoryScreenState();
+}
+
+class _RecipeHistoryScreenState extends State<RecipeHistoryScreen> {
+  List<Map<String, dynamic>> recipes = [];
+  bool isLoading = true;
+  final TextEditingController _filterController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchRecipes();
+  }
+
+  @override
+  void dispose() {
+    _filterController.dispose();
+    super.dispose();
+  }
+
+  Future<void> fetchRecipes() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConfig.recipesHistoryEndpoint}/${widget.userId}'),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+        setState(() {
+          recipes = List<Map<String, dynamic>>.from(data);
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Error al cargar las recetas: ${response.statusCode}');
+      }
+    } catch (e) {
+
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Simulación de recetas previas generadas
-    final List<String> recipeTitles = [
-      'Ensalada de Pollo con Aguacate',
-      'Pasta con Salsa Alfredo',
-      'Tacos de Pescado al Horno',
-      'Sopa de Calabaza Cremosa',
-      'Pollo Teriyaki con Arroz',
-    ];
+    // Filtrar recetas por nombre
+    final filteredRecipes = recipes.where((recipe) {
+      final name = (recipe['name'] ?? '').toString().toLowerCase();
+      final filter = _filterController.text.toLowerCase();
+      return name.contains(filter);
+    }).toList();
 
     return Scaffold(
       body: Column(
@@ -56,52 +105,81 @@ class RecipeHistoryScreen extends StatelessWidget {
               ],
             ),
           ),
-
-          // Lista de recetas generadas
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(20.0),
-              itemCount: recipeTitles.length,
-              itemBuilder: (context, index) {
-                return _buildRecipeCard(recipeTitles[index]);
-              },
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: TextFormField(
+              controller: _filterController,
+              decoration: InputDecoration(
+                labelText: 'Filtrar por nombre de receta',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: const Icon(Icons.search),
+              ),
+              onChanged: (_) => setState(() {}),
             ),
+          ),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : filteredRecipes.isEmpty
+                    ? const Center(
+                        child: Text('No hay recetas guardadas'),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(20.0),
+                        itemCount: filteredRecipes.length,
+                        itemBuilder: (context, index) {
+                          return _buildRecipeCard(filteredRecipes[index], context);
+                        },
+                      ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRecipeCard(String title) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
+  Widget _buildRecipeCard(Map<String, dynamic> recipe, BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RecipeDetailScreen(recipe: recipe),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.receipt_long, color: Color(0xFF4B39EF), size: 30),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
+        );
+        if (result == true) {
+          fetchRecipes();
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.receipt_long, color: Color(0xFF4B39EF), size: 30),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Text(
+                recipe['name'] ?? 'Sin título',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ),
-          Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 16),
-        ],
+            Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 16),
+          ],
+        ),
       ),
     );
   }

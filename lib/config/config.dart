@@ -16,4 +16,9 @@ class AppConfig {
   static String get loginEndpoint => '$baseUrl/users/login';
   static String get registerEndpoint => '$baseUrl/users/register';
   static String get productsEndpoint => '$baseUrl/products';
+  static String get productsQuantityEndpoint => '$baseUrl/products/update-quantities';
+  static String get generateRecipeEndpoint => '$baseUrl/products/generate-recipe';
+  static String get recipesEndpoint => '$baseUrl/recipes';
+  static String get recipesHistoryEndpoint => '$baseUrl/recipes/user';
+  
 }

@@ -364,7 +364,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             'email': _emailController.text,
             'password': _passwordController.text,
           }),
-        );
+        ).timeout(const Duration(seconds: 5));
 
         if (response.statusCode == 200) {
           if (mounted) {

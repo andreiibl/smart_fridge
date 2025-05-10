@@ -224,14 +224,16 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = true);
 
       try {
-        final response = await http.post(
-          Uri.parse(AppConfig.loginEndpoint),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'usernameOrEmail': _usernameOrEmailController.text,
-            'password': _passwordController.text,
-          }),
-        );
+        final response = await http
+            .post(
+              Uri.parse(AppConfig.loginEndpoint),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'usernameOrEmail': _usernameOrEmailController.text,
+                'password': _passwordController.text,
+              }),
+            )
+            .timeout(const Duration(seconds: 5));
 
         setState(() => _isLoading = false);
 
