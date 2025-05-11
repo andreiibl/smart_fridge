@@ -2,6 +2,7 @@ package com.smartfridge.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.smartfridge.model.Recipe;
 import com.smartfridge.repository.RecipeRepository;
@@ -22,5 +23,11 @@ public class RecipeService { // Servicio para lógica de recetas
             throw new RuntimeException("La receta no existe");
         }
         recipeRepository.deleteById(id);
+    }
+
+    // Elimina recetas por id de usuario
+    @Transactional
+    public void deleteAllByUserId(int userId) {
+        recipeRepository.deleteByUserId(userId);
     }
 }

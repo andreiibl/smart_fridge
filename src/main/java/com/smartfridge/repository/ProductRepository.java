@@ -26,4 +26,6 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     // Buscar productos por nombre sin importar mayúsculas o minúsculas
     List<Product> findByNameIgnoreCase(String name);
+
+    void deleteByUserId(int userId);
 }

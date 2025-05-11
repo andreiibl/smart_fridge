@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smart_fridge/screens/login_screen.dart';
+import 'package:smart_fridge/services/user_service.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -70,17 +73,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 child: ListView(
                   children: [
                     _buildPasswordField(
-                      controller: _currentPasswordController,
-                      label: 'Contraseña Actual',
-                      obscureText: _obscureCurrentPassword,
-                      onTap: () {
-                        setState(() {
-                          _obscureCurrentPassword = !_obscureCurrentPassword;
-                        });
-                      },
-                    ),
-
-                    _buildPasswordField(
                       controller: _newPasswordController,
                       label: 'Nueva Contraseña',
                       obscureText: _obscureNewPassword,
@@ -144,9 +136,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         obscureText: obscureText,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           suffixIcon: IconButton(
             icon: Icon(
               obscureText ? Icons.visibility_off : Icons.visibility,
@@ -165,9 +155,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     );
   }
 
-  void _changePassword() {
+  void _changePassword() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final currentPassword = _currentPasswordController.text;
       final newPassword = _newPasswordController.text;
       final confirmPassword = _confirmPasswordController.text;
 
@@ -176,7 +165,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         return;
       }
 
-      _showSuccessDialog('Contraseña cambiada con éxito');
+      final prefs = await SharedPreferences.getInstance();
+      final userIdStr = prefs.getString('userId');
+      if (userIdStr == null) {
+        _showErrorDialog('No se pudo obtener el usuario');
+        return;
+      }
+      final userId = int.parse(userIdStr);
+
+      final success = await UserService().changePassword(userId, newPassword);
+      if (success) {
+        _showSuccessDialog('Contraseña cambiada con éxito');
+      } else {
+        _showErrorDialog('Error al cambiar la contraseña');
+      }
     }
   }
 
@@ -209,8 +211,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           content: Text(message),
           actions: <Widget>[
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear();
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                  (route) => false,
+                );
               },
               child: const Text('Cerrar'),
             ),

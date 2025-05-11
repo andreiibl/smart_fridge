@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_fridge/screens/change_password_screen.dart';
+import 'package:smart_fridge/screens/login_screen.dart';
+import 'package:smart_fridge/services/product_service.dart';
+import 'package:smart_fridge/services/recipe_service.dart';
+import 'package:smart_fridge/services/user_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -57,7 +62,12 @@ class SettingsScreen extends StatelessWidget {
                   icon: Icons.lock,
                   title: 'Cambiar contraseña',
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordScreen()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ChangePasswordScreen(),
+                      ),
+                    );
                   },
                 ),
                 _buildSettingsOption(
@@ -68,8 +78,24 @@ class SettingsScreen extends StatelessWidget {
                       context,
                       title: "Vaciar Nevera",
                       content: "¿Estás seguro de que deseas vaciar la nevera?",
-                      onConfirm: () {
-                        // method
+                      onConfirm: () async {
+                        final prefs = await SharedPreferences.getInstance();
+                        final userId = prefs.getString('userId');
+                        if (userId != null) {
+                          final success = await ProductService()
+                              .deleteAllProductsByUserId(userId);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                success
+                                    ? 'Nevera vaciada correctamente'
+                                    : 'Error al vaciar la nevera',
+                              ),
+                              backgroundColor:
+                                  success ? Colors.green : Colors.red,
+                            ),
+                          );
+                        }
                       },
                     );
                   },
@@ -81,9 +107,27 @@ class SettingsScreen extends StatelessWidget {
                     _showConfirmationDialog(
                       context,
                       title: "Borrar Recetas",
-                      content: "¿Estás seguro de que deseas borrar todas las recetas?",
-                      onConfirm: () {
-                        // method
+                      content:
+                          "¿Estás seguro de que deseas borrar todas las recetas?",
+                      onConfirm: () async {
+                        final prefs = await SharedPreferences.getInstance();
+                        final userIdStr = prefs.getString('userId');
+                        if (userIdStr != null) {
+                          final userId = int.parse(userIdStr);
+                          final success = await RecipeService()
+                              .deleteAllRecipesByUserId(userId);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                success
+                                    ? 'Recetas borradas correctamente'
+                                    : 'Error al borrar las recetas',
+                              ),
+                              backgroundColor:
+                                  success ? Colors.green : Colors.red,
+                            ),
+                          );
+                        }
                       },
                     );
                   },
@@ -97,8 +141,35 @@ class SettingsScreen extends StatelessWidget {
                       context,
                       title: "Borrar Cuenta",
                       content: "¿Estás seguro de que deseas borrar tu cuenta?",
-                      onConfirm: () {
-                        // method
+                      onConfirm: () async {
+                        final prefs = await SharedPreferences.getInstance();
+                        final userIdStr = prefs.getString('userId');
+                        if (userIdStr != null) {
+                          final userId = int.parse(userIdStr);
+                          final success = await UserService().deleteAccount(
+                            userId,
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                success
+                                    ? 'Cuenta borrada correctamente'
+                                    : 'Error al borrar la cuenta',
+                              ),
+                              backgroundColor:
+                                  success ? Colors.green : Colors.red,
+                            ),
+                          );
+                          if (success) {
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.clear();
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (context) => LoginScreen(),
+                              ),
+                            );
+                          }
+                        }
                       },
                     );
                   },
@@ -112,12 +183,11 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-
   void _showConfirmationDialog(
-      BuildContext context, {
-      required String title,
-      required String content,
-      required VoidCallback onConfirm,
+    BuildContext context, {
+    required String title,
+    required String content,
+    required VoidCallback onConfirm,
   }) {
     showDialog(
       context: context,
@@ -169,7 +239,10 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
       child: ListTile(
-        leading: Icon(icon, color: isDestructive ? Colors.red : const Color(0xFF4B39EF)),
+        leading: Icon(
+          icon,
+          color: isDestructive ? Colors.red : const Color(0xFF4B39EF),
+        ),
         title: Text(
           title,
           style: TextStyle(
@@ -178,7 +251,11 @@ class SettingsScreen extends StatelessWidget {
             color: isDestructive ? Colors.red : Colors.black87,
           ),
         ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.grey,
+        ),
         onTap: onTap,
       ),
     );

@@ -103,4 +103,10 @@ public class ProductController {
             return ResponseEntity.badRequest().body(Map.of("message", msg));
         }
     }
+    // Eliminar todos los productos de un usuario
+    @DeleteMapping("/all/{userId}")
+    public ResponseEntity<?> deleteAllProductsByUserId(@PathVariable int userId) {
+        productService.deleteAllByUserId(userId);
+        return ResponseEntity.ok().build();
+    }
 }

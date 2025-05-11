@@ -77,4 +77,17 @@ public class UserController {
             return ResponseEntity.internalServerError().body(errorBody);
         }
     }
+    // Endpoint DELETE para eliminar un usuario y sus datos relacionados
+    @DeleteMapping("/delete/{userId}") 
+    public ResponseEntity<?> deleteUserAndData(@PathVariable int userId) {
+        userService.deleteUserAndRelatedData(userId);
+        return ResponseEntity.ok().build();
+    }
+    // Endpoint PUT para cambiar la contraseña de un usuario
+    @PutMapping("/change-password/{userId}")
+    public ResponseEntity<?> changePassword(@PathVariable int userId, @RequestBody Map<String, String> body) {
+        String newPassword = body.get("newPassword");
+        userService.changePassword(userId, newPassword);
+        return ResponseEntity.ok().build();
+    }
 }

@@ -13,6 +13,7 @@ class AppConfig {
   }
 
   // Endpoints específicos
+  static String get usersEndpoint => '$baseUrl/users';
   static String get loginEndpoint => '$baseUrl/users/login';
   static String get registerEndpoint => '$baseUrl/users/register';
   static String get productsEndpoint => '$baseUrl/products';

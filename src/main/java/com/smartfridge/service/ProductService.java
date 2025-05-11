@@ -7,12 +7,14 @@ import com.smartfridge.repository.RecipeRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 // Servicio para la gestión de productos y generación de recetas
@@ -98,6 +100,10 @@ public class ProductService {
         if (products.isEmpty()) {
             throw new IllegalArgumentException("No se encontraron productos para el usuario con ID: " + userId);
         }
+        List<Recipe> previousRecipes = recipeRepository.findByUserId(userId);
+        List<String> previousTitles = previousRecipes.stream()
+                .map(Recipe::getName)
+                .collect(Collectors.toList());
         StringBuilder promptBuilder = new StringBuilder(
                 "Genera una receta detallada con el siguiente formato y sigue estas instrucciones:\n");
         promptBuilder.append("* TITULO: [Título de la receta]\n");
@@ -109,17 +115,30 @@ public class ProductService {
         promptBuilder.append("1. [Paso 1]\n");
         promptBuilder.append("2. [Paso 2]\n");
         promptBuilder.append(
-            "\nIMPORTANTE: SOLO puedes usar los ingredientes y las cantidades que aparecen en la lista. " +
-            "NO inventes ingredientes ni uses más cantidad de la que hay disponible. " +
-            "Si no puedes crear una receta realista con los ingredientes y cantidades dadas, RESPONDE SOLO: '* TITULO: No se puede generar una receta con los ingredientes disponibles.' " +
-            "En la lista de ingredientes, escribe SIEMPRE primero la cantidad y la unidad, seguido de 'de' y el nombre del ingrediente, por ejemplo: '200 gr de espagueti'. " +
-            "No uses símbolos como ###, ---, ***, ni dobles asteriscos. Si quieres resaltar una sección, usa solo un asterisco al principio, por ejemplo: * INGREDIENTES. " +
-            "Escribe los nombres exactamente como aparecen en la lista, sin tildes y sin añadir detalles extra (por ejemplo, si tienes 'Queso', solo pon 'Queso', no 'Queso de cabra'). " +
-            "Indica SIEMPRE la cantidad de cada ingrediente usado en la receta. " +
-            "NO añadas ningún ingrediente que no esté en la lista, excepto sal, pimienta, aceite o agua si es imprescindible y jamás indiques la cantidad de estos. " +
-            "IMPORTANTE Y OBLIGATORIO: Usa únicamente los siguientes ingredientes, no es necesario usar todos, ni toda la cantidad, son de los que dispongo. " +
-            "SI NO HAY SUFICIENTES INGREDIENTES PARA HACER UNA RECETA REALISTA, RESPONDE SOLO: '* TITULO: No se puede generar una receta con los ingredientes disponibles.'\n"
-        );
+                "\nIMPORTANTE: SOLO puedes usar los ingredientes y las cantidades que aparecen en la lista. " +
+                        "NO inventes ingredientes ni uses más cantidad de la que hay disponible. " +
+                        "Si no puedes crear una receta realista con los ingredientes y cantidades dadas, RESPONDE SOLO: '* TITULO: No se puede generar una receta con los ingredientes disponibles.' "
+                        +
+                        "En la lista de ingredientes, escribe SIEMPRE primero la cantidad y la unidad, seguido de 'de' y el nombre del ingrediente, por ejemplo: '200 gr de espagueti'. "
+                        +
+                        "No uses símbolos como ###, ---, ***, ni dobles asteriscos. Si quieres resaltar una sección, usa solo un asterisco al principio, por ejemplo: * INGREDIENTES. "
+                        +
+                        "Escribe los nombres exactamente como aparecen en la lista, sin tildes y sin añadir detalles extra (por ejemplo, si tienes 'Queso', solo pon 'Queso', no 'Queso de cabra'). "
+                        +
+                        "Indica SIEMPRE la cantidad de cada ingrediente usado en la receta. " +
+                        "NO añadas ningún ingrediente que no esté en la lista, excepto sal, pimienta, aceite o agua si es imprescindible y jamás indiques la cantidad de estos. "
+                        +
+                        "IMPORTANTE Y OBLIGATORIO: Usa únicamente los siguientes ingredientes, no es necesario usar todos, ni toda la cantidad, son de los que dispongo. "
+                        +
+                        "SI NO HAY SUFICIENTES INGREDIENTES PARA HACER UNA RECETA REALISTA, RESPONDE SOLO: '* TITULO: No se puede generar una receta con los ingredientes disponibles.'\n");
+        if (!previousTitles.isEmpty()) {
+            promptBuilder.append(
+                    "\nIMPORTANTE: NO repitas ninguna de estas recetas ya generadas (ni el título ni la receta):\n");
+            for (String title : previousTitles) {
+                promptBuilder.append("- ").append(title).append("\n");
+            }
+            promptBuilder.append("\n");
+        }
         for (Product product : products) {
             promptBuilder.append("- ")
                     .append(product.getQuantity())
@@ -130,7 +149,8 @@ public class ProductService {
                     .append("\n");
         }
         Recipe recipe = chatGPTService.generateRecipe(promptBuilder.toString(), userId);
-        if (recipe.getName() != null && recipe.getName().trim().equalsIgnoreCase("No se puede generar una receta con los ingredientes disponibles.")) {
+        if (recipe.getName() != null && recipe.getName().trim()
+                .equalsIgnoreCase("No se puede generar una receta con los ingredientes disponibles.")) {
             throw new RuntimeException("No se puede generar una receta con los ingredientes disponibles.");
         }
         recipeRepository.save(recipe);
@@ -180,5 +200,10 @@ public class ProductService {
                 }
             }
         }
+    }
+
+    @Transactional
+    public void deleteAllByUserId(int userId) {
+        productRepository.deleteByUserId(userId);
     }
 }

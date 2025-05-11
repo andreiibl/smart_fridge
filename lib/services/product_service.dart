@@ -126,4 +126,12 @@ class ProductService {
       throw Exception('Error al buscar productos por userId');
     }
   }
+  // Borrar todos los productos de un usuario
+  Future<bool> deleteAllProductsByUserId(String userId) async {
+  final response = await http.delete(
+    Uri.parse('${AppConfig.productsEndpoint}/all/$userId'),
+    headers: {'Content-Type': 'application/json; charset=UTF-8'},
+  );
+  return response.statusCode == 200;
+}
 }

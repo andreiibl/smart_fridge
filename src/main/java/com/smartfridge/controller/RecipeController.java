@@ -41,4 +41,11 @@ public class RecipeController { // Controlador de recetas
             return ResponseEntity.badRequest().body(java.util.Map.of("message", msg));
         }
     }
+
+    // Elimina recetas por id de usuario
+    @DeleteMapping("/all/{userId}")
+    public ResponseEntity<?> deleteAllRecipesByUserId(@PathVariable int userId) {
+        recipeService.deleteAllByUserId(userId);
+        return ResponseEntity.ok().build();
+    }
 }
