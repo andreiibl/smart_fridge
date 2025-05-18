@@ -1,9 +1,12 @@
-import 'dart:io';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 
 class AppConfig {
   // URL base según la plataforma
   static String get baseUrl {
-    if (Platform.isAndroid) {
+    if (kIsWeb) {
+      return 'http://localhost:8080';
+    } else if (Platform.isAndroid) {
       return 'http://10.0.2.2:8080';
     } else if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       return 'http://localhost:8080'; 
@@ -21,5 +24,4 @@ class AppConfig {
   static String get generateRecipeEndpoint => '$baseUrl/products/generate-recipe';
   static String get recipesEndpoint => '$baseUrl/recipes';
   static String get recipesHistoryEndpoint => '$baseUrl/recipes/user';
-  
 }
