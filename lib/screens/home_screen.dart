@@ -12,7 +12,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
-    final buttonSize = (screenWidth - 60) / 2; // 60 = padding * 2 + space between
+    final buttonSize = ((screenWidth - 60) / 2).clamp(0, 250).toDouble();
 
     return Scaffold(
       body: Container(
@@ -26,90 +26,88 @@ class HomeScreen extends StatelessWidget {
             end: AlignmentDirectional(-1, -1),
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Welcome title
-              Text(
-                'Bienvenido a SmartFridge',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Welcome title
+            Text(
+              'Bienvenido a SmartFridge',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Selecciona una opción',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: Colors.white.withOpacity(0.9),
+              ),
+            ),
+            const SizedBox(height: 40),
+
+            // Top buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Button products
+                _buildMenuButton(
+                  context,
+                  size: buttonSize,
+                  icon: Icons.shopping_basket_outlined,
+                  label: 'Visualizar\nproductos',
+                  onPressed: () {
+                     // Nav to products
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProductListView()));
+                  },
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Selecciona una opción',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: Colors.white.withOpacity(0.9),
+                const SizedBox(width: 20),
+                // Button recipes
+                _buildMenuButton(
+                  context,
+                  size: buttonSize,
+                  icon: Icons.menu_book_outlined,
+                  label: 'Visualizar\nrecetas',
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const RecipeGeneratorScreen()));
+                  },
                 ),
-              ),
-              const SizedBox(height: 40),
+              ],
+            ),
+            const SizedBox(height: 20),
 
-              // Top buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Button products
-                  _buildMenuButton(
-                    context,
-                    size: buttonSize,
-                    icon: Icons.shopping_basket_outlined,
-                    label: 'Visualizar\nproductos',
-                    onPressed: () {
-                      // Nav to products
-                      Navigator.push(context, MaterialPageRoute(builder: (context) =>  ProductListView()));
-                    },
-                  ),
-
-                  // Button recipes
-                  _buildMenuButton(
-                    context,
-                    size: buttonSize,
-                    icon: Icons.menu_book_outlined,
-                    label: 'Visualizar\nrecetas',
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const RecipeGeneratorScreen()));
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Bottom buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Button config
-                  _buildMenuButton(
-                    context,
-                    size: buttonSize,
-                    icon: Icons.settings_outlined,
-                    label: 'Configuración',
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
-                    },
-                  ),
-                  _buildMenuButton(
-                    context,
-                    size: buttonSize,
-                    icon: Icons.exit_to_app_outlined,
-                    label: 'Cerrar sesión',
-                    onPressed: () async {
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.clear();
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const LoginScreen()),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
+            // Bottom buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Button config
+                _buildMenuButton(
+                  context,
+                  size: buttonSize,
+                  icon: Icons.settings_outlined,
+                  label: 'Configuración',
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
+                  },
+                ),
+                const SizedBox(width: 20),
+                _buildMenuButton(
+                  context,
+                  size: buttonSize,
+                  icon: Icons.exit_to_app_outlined,
+                  label: 'Cerrar sesión',
+                  onPressed: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.clear();
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
